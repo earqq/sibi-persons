@@ -17,7 +17,7 @@ const defaultPort = "8090"
 
 func main() {
 	// port := os.Getenv("PORT")
-	port := 8090
+	port := "8090"
 	db.ConnectDB()
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router := chi.NewRouter()
