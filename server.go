@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -13,11 +14,13 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const defaultPort = "8090"
+const defaultPort = "8085"
 
 func main() {
-	// port := os.Getenv("PORT")
-	port := "8090"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = defaultPort
+	}
 	db.ConnectDB()
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router := chi.NewRouter()
