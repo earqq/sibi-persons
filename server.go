@@ -7,13 +7,14 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/earqq/gqlgen-easybill/auth"
 	"github.com/earqq/gqlgen-easybill/db"
 	"github.com/earqq/gqlgen-easybill/graph"
 	"github.com/earqq/gqlgen-easybill/graph/generated"
 	"github.com/go-chi/chi"
 )
 
-const defaultPort = "8087"
+const defaultPort = "8088"
 
 func main() {
 	port := os.Getenv("PORT")
@@ -23,7 +24,7 @@ func main() {
 	db.ConnectDB()
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router := chi.NewRouter()
-	// router.Use(auth.Middleware())
+	router.Use(auth.Middleware())
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
 
