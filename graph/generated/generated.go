@@ -44,9 +44,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		AddPurchase func(childComplexity int, input *model.NewPurchase) int
-		Login       func(childComplexity int, privateKey *string) int
-		Register    func(childComplexity int, input *model.NewUser) int
+		Login func(childComplexity int, privateKey string) int
 	}
 
 	Purchase struct {
@@ -60,7 +58,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Purchases func(childComplexity int) int
+		Purchases func(childComplexity int, search *string, limit *int) int
 		User      func(childComplexity int) int
 	}
 
@@ -74,13 +72,11 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Login(ctx context.Context, privateKey *string) (*model.User, error)
-	Register(ctx context.Context, input *model.NewUser) (*model.User, error)
-	AddPurchase(ctx context.Context, input *model.NewPurchase) (*model.Purchase, error)
+	Login(ctx context.Context, privateKey string) (*model.User, error)
 }
 type QueryResolver interface {
 	User(ctx context.Context) (*model.User, error)
-	Purchases(ctx context.Context) ([]*model.Purchase, error)
+	Purchases(ctx context.Context, search *string, limit *int) ([]*model.Purchase, error)
 }
 
 type executableSchema struct {
@@ -98,18 +94,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Mutation.addPurchase":
-		if e.complexity.Mutation.AddPurchase == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_addPurchase_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddPurchase(childComplexity, args["input"].(*model.NewPurchase)), true
-
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -120,19 +104,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Login(childComplexity, args["private_key"].(*string)), true
-
-	case "Mutation.register":
-		if e.complexity.Mutation.Register == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_register_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.Register(childComplexity, args["input"].(*model.NewUser)), true
+		return e.complexity.Mutation.Login(childComplexity, args["private_key"].(string)), true
 
 	case "Purchase.contact_identity":
 		if e.complexity.Purchase.ContactIdentity == nil {
@@ -188,7 +160,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Purchases(childComplexity), true
+		args, err := ec.field_Query_purchases_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Purchases(childComplexity, args["search"].(*string), args["limit"].(*int)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -332,13 +309,13 @@ input NewPurchase {
 }
 type Query {
   user: User!
-  purchases: [Purchase]!
+  purchases(search:String, limit: Int): [Purchase]!
 }
 
 type Mutation {
-  login(private_key: String): User!
-  register(input: NewUser): User!
-  addPurchase(input: NewPurchase): Purchase!
+  login(private_key: String!): User!
+  # register(input: NewUser): User!
+  # addPurchase(input: NewPurchase): Purchase!
 }
 `, BuiltIn: false},
 }
@@ -348,45 +325,17 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_addPurchase_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *model.NewPurchase
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalONewPurchase2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewPurchase(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 string
 	if tmp, ok := rawArgs["private_key"]; ok {
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["private_key"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_register_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *model.NewUser
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalONewUser2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewUser(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
 	return args, nil
 }
 
@@ -401,6 +350,28 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_purchases_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["search"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["search"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -464,7 +435,7 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Login(rctx, args["private_key"].(*string))
+		return ec.resolvers.Mutation().Login(rctx, args["private_key"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -479,88 +450,6 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_register(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_register_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Register(rctx, args["input"].(*model.NewUser))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.User)
-	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_addPurchase(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_addPurchase_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddPurchase(rctx, args["input"].(*model.NewPurchase))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Purchase)
-	fc.Result = res
-	return ec.marshalNPurchase2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐPurchase(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Purchase_serie(ctx context.Context, field graphql.CollectedField, obj *model.Purchase) (ret graphql.Marshaler) {
@@ -850,9 +739,16 @@ func (ec *executionContext) _Query_purchases(ctx context.Context, field graphql.
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_purchases_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Purchases(rctx)
+		return ec.resolvers.Query().Purchases(rctx, args["search"].(*string), args["limit"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2275,16 +2171,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "register":
-			out.Values[i] = ec._Mutation_register(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "addPurchase":
-			out.Values[i] = ec._Mutation_addPurchase(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2773,10 +2659,6 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNPurchase2githubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐPurchase(ctx context.Context, sel ast.SelectionSet, v model.Purchase) graphql.Marshaler {
-	return ec._Purchase(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNPurchase2ᚕᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐPurchase(ctx context.Context, sel ast.SelectionSet, v []*model.Purchase) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -2812,16 +2694,6 @@ func (ec *executionContext) marshalNPurchase2ᚕᚖgithubᚗcomᚋearqqᚋgqlgen
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalNPurchase2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐPurchase(ctx context.Context, sel ast.SelectionSet, v *model.Purchase) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Purchase(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -3101,28 +2973,27 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) unmarshalONewPurchase2githubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewPurchase(ctx context.Context, v interface{}) (model.NewPurchase, error) {
-	return ec.unmarshalInputNewPurchase(ctx, v)
+func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
+	return graphql.UnmarshalInt(v)
 }
 
-func (ec *executionContext) unmarshalONewPurchase2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewPurchase(ctx context.Context, v interface{}) (*model.NewPurchase, error) {
+func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	return graphql.MarshalInt(v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalONewPurchase2githubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewPurchase(ctx, v)
+	res, err := ec.unmarshalOInt2int(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) unmarshalONewUser2githubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewUser(ctx context.Context, v interface{}) (model.NewUser, error) {
-	return ec.unmarshalInputNewUser(ctx, v)
-}
-
-func (ec *executionContext) unmarshalONewUser2ᚖgithubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewUser(ctx context.Context, v interface{}) (*model.NewUser, error) {
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
 	if v == nil {
-		return nil, nil
+		return graphql.Null
 	}
-	res, err := ec.unmarshalONewUser2githubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐNewUser(ctx, v)
-	return &res, err
+	return ec.marshalOInt2int(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalOPurchase2githubᚗcomᚋearqqᚋgqlgenᚑeasybillᚋgraphᚋmodelᚐPurchase(ctx context.Context, sel ast.SelectionSet, v model.Purchase) graphql.Marshaler {

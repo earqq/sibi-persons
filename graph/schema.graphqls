@@ -34,11 +34,11 @@ input NewPurchase {
 }
 type Query {
   user: User!
-  purchases: [Purchase]!
+  purchases(search:String, limit: Int): [Purchase]!
 }
 
 type Mutation {
-  login(private_key: String): User!
-  register(input: NewUser): User!
-  addPurchase(input: NewPurchase): Purchase!
+  login(private_key: String!): User!
+  # register(input: NewUser): User!
+  # addPurchase(input: NewPurchase): Purchase!
 }
