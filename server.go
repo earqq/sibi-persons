@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-const defaultPort = "8085"
+const defaultPort = "8087"
 
 func main() {
 	port := os.Getenv("PORT")
