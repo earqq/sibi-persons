@@ -12,6 +12,7 @@ import (
 	"github.com/earqq/gqlgen-easybill/graph"
 	"github.com/earqq/gqlgen-easybill/graph/generated"
 	"github.com/go-chi/chi"
+	"github.com/rs/cors"
 )
 
 const defaultPort = "8087"
@@ -21,9 +22,15 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
-	db.ConnectDB()
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router := chi.NewRouter()
+	db.ConnectDB()
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+		Debug:            true,
+	}).Handler)
+
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router.Use(auth.Middleware())
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
