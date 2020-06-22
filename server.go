@@ -24,15 +24,14 @@ func main() {
 	}
 	db.ConnectDB()
 	router := chi.NewRouter()
-	cors := cors.New(cors.Options{
+	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"X-PINGOTHER", "Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	})
-	router.Use(cors.Handler)
+	}).Handler)
 
 	router.Use(auth.Middleware())
 
