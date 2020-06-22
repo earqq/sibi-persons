@@ -26,9 +26,11 @@ func main() {
 	db.ConnectDB()
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
+		AllowCredentials: false,
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		Debug:            true,
 	}).Handler)
+
 	router.Use(auth.Middleware())
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
