@@ -26,8 +26,8 @@ func main() {
 	db.ConnectDB()
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowCredentials: false,
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"*"},
 		Debug:            true,
 	}).Handler)
 
