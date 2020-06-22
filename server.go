@@ -28,7 +28,7 @@ func main() {
 	db.ConnectDB()
 	router.Use(auth.Middleware())
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"http://localhost:8080", "174.138.39.252"},
 		AllowCredentials: true,
 	}).Handler)
 
@@ -37,7 +37,7 @@ func main() {
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				// Check against your desired domains here
-				return r.Host == "easybill.pe"
+				return r.Host == "174.138.39.252"
 			},
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -47,6 +47,6 @@ func main() {
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Printf("connect to http://localhost:%s/ for GraphQL playgro	und", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
