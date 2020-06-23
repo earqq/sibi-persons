@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/earqq/gqlgen-easybill/auth"
 	"github.com/earqq/gqlgen-easybill/db"
@@ -16,16 +17,16 @@ import (
 
 func (r *mutationResolver) Login(ctx context.Context, privateKey string) (*model.User, error) {
 	var user model.User
-	var userBD = db.GetCollection("users")
-	if err := userBD.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&user); err != nil {
-		return &model.User{}, errors.New("No existe usuario con esa clave")
+	var userDB = db.GetCollection("users")
+	if err := userDB.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&user); err != nil {
+		return &model.User{}, errors.New("No existe persona con esa clave")
 	}
 	if user.Token == "" {
 		var Token = auth.GenerateJWT(privateKey)
-		if err := userBD.Update(bson.M{"private_key": privateKey}, bson.M{"$set": bson.M{"token": Token}}); err != nil {
+		if err := userDB.Update(bson.M{"private_key": privateKey}, bson.M{"$set": bson.M{"token": Token}}); err != nil {
 			return &model.User{}, errors.New("No se pudo actualizar token")
 		}
-		_ = userBD.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&user)
+		_ = userDB.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&user)
 	}
 	return &user, nil
 }
@@ -35,9 +36,9 @@ func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
 	if userContext == nil {
 		return &model.User{}, errors.New("Acceso denegado")
 	}
-	var userBD = db.GetCollection("users")
+	var userDB = db.GetCollection("users")
 	var user model.User
-	if err := userBD.Find(bson.M{"private_key": userContext.PrivateKey}).Select(bson.M{"_id": 0}).One(&user); err != nil {
+	if err := userDB.Find(bson.M{"private_key": userContext.PrivateKey}).Select(bson.M{"_id": 0}).One(&user); err != nil {
 		return &model.User{}, err
 	}
 	return &user, nil
@@ -51,10 +52,10 @@ func (r *queryResolver) Purchases(ctx context.Context, search *string, limit *in
 	var purchases []*model.Purchase
 	var fields = bson.M{}
 	var purchaseBD = db.GetCollection("purchases")
-	var userBD = db.GetCollection("users")
+	var userDB = db.GetCollection("users")
 	var user model.User
-	if err := userBD.Find(bson.M{"private_key": userContext.PrivateKey}).One(&user); err != nil {
-		return nil, errors.New("No se encontró usuario relacionado")
+	if err := userDB.Find(bson.M{"private_key": userContext.PrivateKey}).One(&user); err != nil {
+		return nil, errors.New("No se encontró persona relacionado")
 	}
 	if search != nil {
 		fields["search"] = bson.M{"$regex": *search, "$options": "i"}
@@ -76,3 +77,13 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *queryResolver) Person(ctx context.Context) (*model.User, error) {
+	panic(fmt.Errorf("not implemented"))
+}
