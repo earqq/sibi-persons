@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/earqq/gqlgen-easybill/auth"
 	"github.com/earqq/gqlgen-easybill/db"
@@ -15,33 +14,33 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func (r *mutationResolver) Login(ctx context.Context, privateKey string) (*model.User, error) {
-	var user model.User
-	var userDB = db.GetCollection("users")
-	if err := userDB.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&user); err != nil {
-		return &model.User{}, errors.New("No existe persona con esa clave")
+func (r *mutationResolver) Login(ctx context.Context, privateKey string) (*model.Person, error) {
+	var person model.Person
+	var peopleDB = db.GetCollection("people")
+	if err := peopleDB.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&person); err != nil {
+		return &model.Person{}, errors.New("No existe persona con esa clave")
 	}
-	if user.Token == "" {
+	if person.Token == "" {
 		var Token = auth.GenerateJWT(privateKey)
-		if err := userDB.Update(bson.M{"private_key": privateKey}, bson.M{"$set": bson.M{"token": Token}}); err != nil {
-			return &model.User{}, errors.New("No se pudo actualizar token")
+		if err := peopleDB.Update(bson.M{"private_key": privateKey}, bson.M{"$set": bson.M{"token": Token}}); err != nil {
+			return &model.Person{}, errors.New("No se pudo actualizar token")
 		}
-		_ = userDB.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&user)
+		_ = peopleDB.Find(bson.M{"private_key": privateKey}).Select(bson.M{"_id": 0, "password": 0}).One(&person)
 	}
-	return &user, nil
+	return &person, nil
 }
 
-func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) Person(ctx context.Context) (*model.Person, error) {
 	userContext := auth.ForContext(ctx)
 	if userContext == nil {
-		return &model.User{}, errors.New("Acceso denegado")
+		return &model.Person{}, errors.New("Acceso denegado")
 	}
-	var userDB = db.GetCollection("users")
-	var user model.User
-	if err := userDB.Find(bson.M{"private_key": userContext.PrivateKey}).Select(bson.M{"_id": 0}).One(&user); err != nil {
-		return &model.User{}, err
+	var peopleDB = db.GetCollection("people")
+	var person model.Person
+	if err := peopleDB.Find(bson.M{"private_key": userContext.PrivateKey}).Select(bson.M{"_id": 0}).One(&person); err != nil {
+		return &model.Person{}, err
 	}
-	return &user, nil
+	return &person, nil
 }
 
 func (r *queryResolver) Purchases(ctx context.Context, search *string, limit *int) ([]*model.Purchase, error) {
@@ -52,15 +51,15 @@ func (r *queryResolver) Purchases(ctx context.Context, search *string, limit *in
 	var purchases []*model.Purchase
 	var fields = bson.M{}
 	var purchaseBD = db.GetCollection("purchases")
-	var userDB = db.GetCollection("users")
-	var user model.User
-	if err := userDB.Find(bson.M{"private_key": userContext.PrivateKey}).One(&user); err != nil {
+	var peopleDB = db.GetCollection("people")
+	var person model.Person
+	if err := peopleDB.Find(bson.M{"private_key": userContext.PrivateKey}).One(&person); err != nil {
 		return nil, errors.New("No se encontró persona relacionado")
 	}
 	if search != nil {
 		fields["search"] = bson.M{"$regex": *search, "$options": "i"}
 	}
-	fields["user_id"] = bson.ObjectId(user.ID).Hex()
+	fields["person_id"] = bson.ObjectId(person.ID).Hex()
 	if limit != nil {
 		purchaseBD.Find(fields).Limit(*limit).Sort("-issue_date").Select(bson.M{"_id": 0}).All(&purchases)
 	} else {
@@ -77,13 +76,3 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *queryResolver) Person(ctx context.Context) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
-}

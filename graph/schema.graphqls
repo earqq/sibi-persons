@@ -2,7 +2,7 @@
 #
 # https://gqlgen.com/getting-started/
 
-type User {
+type Person {
   id: ID!
   name: String!
   private_key: String!
@@ -12,8 +12,8 @@ type User {
 type Purchase {
   serie: String!
   number: Int!
-  contact_identity: String!
-  contact_name: String!
+  company_ruc: String!
+  company_name: String!
   total_price: Float!
   total_igv: Float!
   issue_date: String!
@@ -21,24 +21,24 @@ type Purchase {
 input NewUser {
   name: String!
   identity: String!
-  user_id: String!
+  person_id: String!
 }
 input NewPurchase {
   serie: String!
   number: Int!
-  contact_identity: String!
-  contact_name: String!
+  company_ruc: String!
+  company_name: String!
   total_price: Float!
   total_igv: Float!
   issue_date: String!
 }
 type Query {
-  user: User!
+  person: Person!
   purchases(search:String, limit: Int): [Purchase]!
 }
 
 type Mutation {
-  login(private_key: String!): User!
+  login(private_key: String!): Person!
   # register(input: NewUser): User!
   # addPurchase(input: NewPurchase): Purchase!
 }

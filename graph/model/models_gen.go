@@ -3,17 +3,17 @@
 package model
 
 type NewPurchase struct {
-	Serie           string  `json:"serie"`
-	Number          int     `json:"number"`
-	ContactIdentity string  `json:"contact_identity"`
-	ContactName     string  `json:"contact_name"`
-	TotalPrice      float64 `json:"total_price"`
-	TotalIgv        float64 `json:"total_igv"`
-	IssueDate       string  `json:"issue_date"`
+	Serie       string  `json:"serie"`
+	Number      int     `json:"number"`
+	CompanyRuc  string  `json:"company_ruc"`
+	CompanyName string  `json:"company_name"`
+	TotalPrice  float64 `json:"total_price"`
+	TotalIgv    float64 `json:"total_igv"`
+	IssueDate   string  `json:"issue_date"`
 }
 
 type NewUser struct {
 	Name     string `json:"name"`
 	Identity string `json:"identity"`
-	UserID   string `json:"user_id"`
+	PersonID string `json:"person_id"`
 }

@@ -20,7 +20,7 @@ var (
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey
 )
-var userCtxKey = &contextKey{"user"}
+var userCtxKey = &contextKey{"person"}
 
 type contextKey struct {
 	Name string
@@ -64,13 +64,13 @@ func Middleware() func(http.Handler) http.Handler {
 				return publicKey, nil
 			})
 			if err == nil && token.Valid {
-				var user model.User
+				var person model.Person
 				tokenString := TokenFromHttpRequest(r)
 				privateKeyString := PrivateKeyFromToken(tokenString)
-				userBD := db.GetCollection("users")
-				_ = userBD.Find(bson.M{"private_key": privateKeyString}).Select(bson.M{"_id": 0, "password": 0}).One(&user)
+				peopleDB := db.GetCollection("people")
+				_ = peopleDB.Find(bson.M{"private_key": privateKeyString}).Select(bson.M{"_id": 0, "password": 0}).One(&person)
 				// put it in context
-				ctx := context.WithValue(r.Context(), userCtxKey, &user)
+				ctx := context.WithValue(r.Context(), userCtxKey, &person)
 				// and call the next with our new context
 				r = r.WithContext(ctx)
 			}
@@ -110,10 +110,10 @@ func PrivateKeyFromToken(tokenString string) string {
 		return "3"
 	}
 }
-func ForContext(ctx context.Context) *model.User {
-	raw, _ := ctx.Value(userCtxKey).(*model.User)
+func ForContext(ctx context.Context) *model.Person {
+	raw, _ := ctx.Value(userCtxKey).(*model.Person)
 	return raw
 }
-func GetAuthFromContext(ctx context.Context) *model.User {
+func GetAuthFromContext(ctx context.Context) *model.Person {
 	return ForContext(ctx)
 }
